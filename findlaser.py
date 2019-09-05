@@ -23,35 +23,12 @@ def applyclahe(image):
 
 
 def getskeleton(image):
-    red = image[:,:,2]
-    green = image[:,:,1]
-    blue = image[:,:,0]
-    # print(red)
-    # print(blue)
-
-    redminblue = cv2.subtract(red,blue)
-    # print(redminblue)
-    redminblue = redminblue.dot(1.6)
-    # print(redminblue)
-    redmingreen = cv2.subtract(red,green)
-    # print(type(redminblue))
-    # print(type(redmingreen))
-    nm = np.zeros(redminblue.shape)
-    # print(nm.shape)
-    for i in range(0, image.shape[0]): #to find minimum
-        for j in range(0, image.shape[1]):
-            if redminblue[i][j] >= redmingreen[i][j]:
-                nm[i][j] = redmingreen[i][j]
-            else:
-                nm[i][j] = int(redminblue[i][j])
-
-    # print(nm)
-
-    ret,img = cv2.threshold(nm, 40, 255, cv2.THRESH_BINARY) #second parameter is the threshold
-
-    img = (img - np.min(img))/np.ptp(img) #normalize image for skeletonize
-    img = img.astype(np.uint8)
-    skeleton = skeletonize(img) #takes an image(uint8) as input
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    ret,binary = cv2.threshold(gray, 40, 255, cv2.THRESH_BINARY)
+    # arr = np.array(img)
+    binary = (binary - np.min(binary))/np.ptp(binary) #normalize image for skeletonize
+    binary = binary.astype(np.uint8)
+    skeleton = skeletonize(binary)
     return skeleton.astype(np.uint8)*255
 
 
@@ -68,27 +45,51 @@ def applysaturation(img, amount):
     return img
 
 
-image = cv2.imread('data/shadow/shadow (5).jpg')
+def getredinHSV(image):
+    img_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    ## Gen lower mask (0-10) and upper mask (170-180) of RED
+    mask1 = cv2.inRange(img_hsv, (0,20,70), (30,255,255))
+    mask2 = cv2.inRange(img_hsv, (150,20,70), (180,255,255))
+
+    ## Merge the mask and crop the red regions
+    mask = cv2.bitwise_or(mask1, mask2)
+    croped = cv2.bitwise_and(image, image, mask=mask)
+
+    ## Display
+    # cv2.imshow("mask", mask)
+    # cv2.imshow("croped", croped)
+    img_rgb = cv2.cvtColor(croped, cv2.COLOR_HSV2BGR)
+    return croped
+    # cv2.imwrite('results/hsv.jpg', croped)
+    # cv2.waitKey()
+
+
+image = cv2.imread('data/shadow/shadow (2).jpg')
 
 # print(image.shape)
 # cv2.imshow('window',image)
 # cv2.waitKey(0)
 
 #crop image
+# for shadow 1-5
 top = 450
 bottom = 4450
 left = 2450
 right = 2780
+# for shadow 17-19
+# top = 1200
+# bottom = 4607
+# left = 2450
+# right = 2730
 img = image[top:bottom, left:right]
 
 cv2.imwrite('results/before.jpg', img)
 
+# img = applyclahe(img)
 img = applysaturation(img, 2)
-#img = applyclahe(img)
-
+img = getredinHSV(img)
 cv2.imwrite('results/after.jpg', img)
-
-img = getskeleton(img)
-
-cv2.imwrite('results/skeleton.jpg', img)
+skeleton = getskeleton(img)
+cv2.imwrite('results/skeleton.jpg', skeleton)
 displayimg(img)
