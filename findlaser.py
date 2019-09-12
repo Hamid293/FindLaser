@@ -24,8 +24,7 @@ def applyclahe(image):
 
 def getskeleton(image):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    ret,binary = cv2.threshold(gray, 40, 255, cv2.THRESH_BINARY)
-    # arr = np.array(img)
+    ret,binary = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
     binary = (binary - np.min(binary))/np.ptp(binary) #normalize image for skeletonize
     binary = binary.astype(np.uint8)
     skeleton = skeletonize(binary)
@@ -65,6 +64,35 @@ def getredinHSV(image):
     # cv2.waitKey()
 
 
+def cleanimg(cimg):
+    point = [1669, 154]
+    while point[0] != 3030:
+        if (cimg[point[0]+1][point[1]] == 255):
+            # print("centre")
+            point[0] += 1
+            # print(point[0])
+        elif (cimg[point[0]+1][point[1]-1] == 255):
+            # print("left")
+            point[0] += 1
+            point[1] -= 1
+            # print(point[0])
+        elif (cimg[point[0]+1][point[1]+1] == 255):
+            # print("right")
+            point[0] += 1
+            point[1] += 1
+            # print(point[0])
+        else:
+            # print("point not found")
+            point[0] += 1
+            continue
+
+        for i in range(0, 330):
+            if i == point[1]:
+                continue
+            cimg[point[0]][i] = 0
+    return cimg
+
+
 image = cv2.imread('data/shadow/shadow (2).jpg')
 
 # print(image.shape)
@@ -92,4 +120,6 @@ img = getredinHSV(img)
 cv2.imwrite('results/after.jpg', img)
 skeleton = getskeleton(img)
 cv2.imwrite('results/skeleton.jpg', skeleton)
-displayimg(img)
+img = cleanimg(skeleton)
+cv2.imwrite('results/clean.jpg', img)
+
